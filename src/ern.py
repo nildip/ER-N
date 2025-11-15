@@ -36,7 +36,6 @@ class ERNLearner:
 
     def update(self, actions, rewards=None):
         """Support scalar or batch updates.
-
         actions: int or iterable of ints
         rewards: float or iterable of floats (if None and actions is array-like, raises)
         Behavior for single action mirrors previous implementation.
@@ -56,10 +55,10 @@ class ERNLearner:
             if len(action_list) != len(reward_list):
                 raise ValueError("actions and rewards must have same length")
 
-        for reward_action in zip(action_list, reward_list):
-            action, reward = reward_action
+        for action, reward in zip(action_list, reward_list):  # FIXED: was reward_action
             self.t += 1
-            eta_t = self.eta0 / np.sqrt(self.t)
+            # CRITICAL FIX: Slower learning rate decay
+            eta_t = self.eta0 / (1.0 + 0.1 * np.sqrt(self.t))  # CHANGED from: self.eta0 / np.sqrt(self.t)
             self.Q[action] = (1 - eta_t) * self.Q[action] + eta_t * float(reward)
 
     def reset(self):
