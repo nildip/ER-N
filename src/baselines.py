@@ -72,22 +72,40 @@ class SASRec:
     def get_policy(self, user):
         hist = self.user_history.get(user, [])
 
-        # ---- FIX START: prevent invalid or empty indices ----
-        if len(hist) == 0:
+        # If no history, uniform policy
+        if not hist:
             return np.ones(self.n_items) / self.n_items
 
-        # Take recent items
+        # Take last max_history items
         recent = hist[-self.max_history:]
 
-        # Filter out invalid indices
-        recent = [i for i in recent if isinstance(i, int) and 0 <= i < self.n_items]
+        # Robust conversion/filtering:
+        valid_indices = []
+        for idx in recent:
+            if idx is None:
+                continue
+            # Accept numpy integer types as well
+            if isinstance(idx, (int, np.integer)):
+                i = int(idx)
+            else:
+                # Try coercing strings like '123' to int; otherwise skip
+                try:
+                    i = int(idx)
+                except Exception:
+                    continue
+            # Check bounds
+            if 0 <= i < self.n_items:
+                valid_indices.append(i)
 
-        # If still empty → fallback uniform policy
-        if len(recent) == 0:
+        if len(valid_indices) == 0:
+            # fallback: uniform policy
             return np.ones(self.n_items) / self.n_items
-        # ---- FIX END ----
 
-        rep = np.mean(self.item_embeddings[recent], axis=0)
+        # Convert to numpy array of ints for safe advanced indexing
+        recent_idx = np.array(valid_indices, dtype=np.int64)
+
+        # Compute representation and scores
+        rep = np.mean(self.item_embeddings[recent_idx], axis=0)
         scores = np.dot(rep, self.item_embeddings.T)
         return softmax(scores)
 
