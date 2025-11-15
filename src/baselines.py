@@ -28,6 +28,7 @@ class BaselineSoftmaxModel:
         self.Q[:] = 0.0
         self.t = 0
 
+
 class RobustMF:
     def __init__(self, n_users, n_items, n_factors=16, lr=0.01, delta=0.5, seed=None):
         self.n_users = n_users
@@ -58,6 +59,7 @@ class RobustMF:
         self.user_factors[user] += self.lr * grad * v
         self.item_factors[item] += self.lr * grad * u
 
+
 class SASRec:
     def __init__(self, n_items, n_factors=32, max_history=50, seed=None):
         self.n_items = n_items
@@ -69,9 +71,22 @@ class SASRec:
 
     def get_policy(self, user):
         hist = self.user_history.get(user, [])
+
+        # ---- FIX START: prevent invalid or empty indices ----
         if len(hist) == 0:
             return np.ones(self.n_items) / self.n_items
+
+        # Take recent items
         recent = hist[-self.max_history:]
+
+        # Filter out invalid indices
+        recent = [i for i in recent if isinstance(i, int) and 0 <= i < self.n_items]
+
+        # If still empty → fallback uniform policy
+        if len(recent) == 0:
+            return np.ones(self.n_items) / self.n_items
+        # ---- FIX END ----
+
         rep = np.mean(self.item_embeddings[recent], axis=0)
         scores = np.dot(rep, self.item_embeddings.T)
         return softmax(scores)
@@ -80,6 +95,7 @@ class SASRec:
         self.user_history.setdefault(user, []).append(item)
         if len(self.user_history[user]) > self.max_history:
             self.user_history[user] = self.user_history[user][-self.max_history:]
+
 
 class LightGCN:
     def __init__(self, n_users, n_items, n_factors=32, seed=None):
