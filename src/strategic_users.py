@@ -34,11 +34,11 @@ def generate_user_utilities(n_users, n_items, seed=42):
 def generate_alpha_distribution(n_users, distribution='uniform', seed=42):
     rng = np.random.RandomState(seed)
     if distribution == 'uniform':
-        return rng.uniform(0.0, 0.3, size=n_users).astype(np.float64)
+        return rng.uniform(0.3, 0.8, size=n_users).astype(np.float64)
     elif distribution == 'beta':
-        return (rng.beta(2.0, 5.0, size=n_users) * 0.5).astype(np.float64)
+        return (rng.beta(2.0, 5.0, size=n_users) * 0.8).astype(np.float64)
     elif distribution == 'bimodal':
-        choices = rng.choice([0.05, 0.25], size=n_users)
+        choices = rng.choice([0.4, 0.8], size=n_users)
         return choices.astype(np.float64)
     elif distribution == 'adversarial':
         return np.ones(n_users, dtype=np.float64)
