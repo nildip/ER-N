@@ -154,8 +154,8 @@ def run_full_experiment(dataset='movielens', n_seeds=5, T=2000, quick_test=False
     users = [StrategicUser(true_utilities=utilities[u], alpha=float(alphas[u])) for u in range(n_users)]
 
     methods = {
-        'ern': lambda: ERNLearner(n_items=n_items, beta=0.1, sigma=0.01, eta0=0.001, seed=seed),
-        'bsm': lambda: BaselineSoftmaxModel(n_items=n_items, beta=1.0, eta0=0.001, seed=seed),
+        'ern': lambda: ERNLearner(n_items=n_items, beta=1.0, sigma=0.05, eta0=0.01, seed=seed),
+        'bsm': lambda: BaselineSoftmaxModel(n_items=n_items, beta=1.0, eta0=0.01, seed=seed),
         'robustmf': lambda: RobustMF(n_users=n_users, n_items=n_items, n_factors=16, lr=0.01, delta=0.5, seed=seed),
         'sasrec': lambda: SASRec(n_items=n_items, n_factors=16, max_history=50, seed=seed),
         'lightgcn': lambda: LightGCN(n_users=n_users, n_items=n_items, n_factors=16, seed=seed)
