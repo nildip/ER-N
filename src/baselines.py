@@ -21,7 +21,7 @@ class BaselineSoftmaxModel:
 
     def update(self, action, reward):
         self.t += 1
-        eta_t = self.eta0 / np.sqrt(self.t)
+        eta_t = self.eta0 / (1.0 + 0.1 * np.sqrt(self.t))
         self.Q[action] = (1 - eta_t) * self.Q[action] + eta_t * float(reward)
 
     def reset(self):
