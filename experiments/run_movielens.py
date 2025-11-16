@@ -139,8 +139,8 @@ def run_full_experiment(dataset='movielens', n_seeds=5, T=2000, quick_test=False
         n_items = 5
     else:
         try:
-            from data.preprocess import load_movielens
-            data = load_movielens()
+            from data.preprocess import load_movielens_topK
+            data = load_movielens_topK(K=100)
             n_users = data['n_users']
             n_items = data['n_items']
         except Exception:
