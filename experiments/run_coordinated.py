@@ -137,9 +137,9 @@ def run_coordinated_experiment(collusion_rate=0.05, n_seeds=5, T=10000, K=None):
     
     # Methods
     methods = {
-        'ern': lambda: ERNLearner(n_items=n_items, beta=1.0, sigma=0.05, eta0=0.01, seed=42),
-        'bsm': lambda: BaselineSoftmaxModel(n_items=n_items, beta=1.0, eta0=0.01, seed=42),
-        'robustmf': lambda: RobustMF(n_users=n_users, n_items=n_items, n_factors=16, lr=0.01, delta=0.5, seed=42),
+        'ern': lambda: ERNLearner(n_items=n_items, beta=5.0, sigma=0.2, eta0=0.1, seed=42),
+        'bsm': lambda: BaselineSoftmaxModel(n_items=n_items, beta=5.0, eta0=0.1, seed=42),
+        'robustmf': lambda: RobustMF(n_users=n_users, n_items=n_items, n_factors=16, lr=0.05, delta=0.5, seed=42),
     }
     
     all_results = {}
