@@ -84,7 +84,7 @@ def run_coordinated_single(learner, attack, utilities, T, seed, strategy='coordi
     return results
 
 
-def run_coordinated_experiment(collusion_rate=0.05, n_seeds=5, T=10000, K=None):
+def run_coordinated_experiment(collusion_rate=0.05, n_seeds=5, T=10000, K=None, use_real_data=False):
     """
     Run full coordinated manipulation experiment.
     
@@ -92,31 +92,43 @@ def run_coordinated_experiment(collusion_rate=0.05, n_seeds=5, T=10000, K=None):
         collusion_rate: Fraction of users colluding
         n_seeds: Number of random seeds
         T: Number of rounds
-        K: Number of items (if None, load from MovieLens)
+        K: Number of items (for synthetic) or top-K filter (for MovieLens)
+        use_real_data: If True, load MovieLens; if False, use synthetic
     """
     
     # Load dataset
-    if K is None:
+    if use_real_data:
         try:
-            from data.preprocess import load_movielens
-            data = load_movielens()
-            n_users = data['n_users']
-            n_items = data['n_items']
-            print(f"Loaded MovieLens: {n_users} users, {n_items} items")
-        except:
+            if K is None:
+                # Load full MovieLens
+                from data.preprocess import load_movielens
+                data = load_movielens()
+                n_users = data['n_users']
+                n_items = data['n_items']
+                print(f"Loaded MovieLens (full): {n_users} users, {n_items} items")
+            else:
+                # Load MovieLens top-K
+                from data.preprocess import load_movielens_topK
+                data = load_movielens_topK(K=K)
+                n_users = data['n_users']
+                n_items = data['n_items']
+                print(f"Loaded MovieLens (top-{K}): {n_users} users, {n_items} items")
+        except Exception as e:
+            print(f"⚠️  Failed to load MovieLens: {e}")
+            print(f"   Falling back to synthetic data")
             n_users = 1000
-            n_items = 200
+            n_items = K if K is not None else 200
             print(f"Using synthetic: {n_users} users, {n_items} items")
     else:
+        # Synthetic data (default)
         n_users = 1000
-        n_items = K
+        n_items = K if K is not None else 200
         print(f"Using synthetic: {n_users} users, {n_items} items")
     
     # Generate utilities
     utilities = generate_user_utilities(n_users, n_items, seed=42)
     
     # Choose target: pick item at 25th percentile popularity
-    # (not too popular, not too unpopular)
     target_item = n_items // 4
     
     print(f"\nExperiment Configuration:")
@@ -135,11 +147,10 @@ def run_coordinated_experiment(collusion_rate=0.05, n_seeds=5, T=10000, K=None):
         seed=42
     )
     
-    # Methods
+    # Methods (REMOVED RobustMF)
     methods = {
         'ern': lambda: ERNLearner(n_items=n_items, beta=10.0, sigma=0.3, eta0=0.2, seed=42),
         'bsm': lambda: BaselineSoftmaxModel(n_items=n_items, beta=10.0, eta0=0.2, seed=42),
-        'robustmf': lambda: RobustMF(n_users=n_users, n_items=n_items, n_factors=16, lr=0.1, delta=0.5, seed=42),
     }
     
     all_results = {}
@@ -206,25 +217,32 @@ def run_coordinated_experiment(collusion_rate=0.05, n_seeds=5, T=10000, K=None):
     
     # Save
     os.makedirs('results', exist_ok=True)
-    outpath = f'results/coordinated_{int(collusion_rate*100)}pct_T{T}_seeds{n_seeds}.json'
+    dataset_suffix = 'movielens' if use_real_data else 'synthetic'
+    outpath = f'results/coordinated_{int(collusion_rate*100)}pct_{dataset_suffix}_T{T}_seeds{n_seeds}.json'
     with open(outpath, 'w') as f:
         json.dump(all_results, f, indent=2)
     
     print(f"Results saved to: {outpath}")
     return all_results
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--collusion', type=float, default=0.05)
-    parser.add_argument('--T', type=int, default=10000)
-    parser.add_argument('--n_seeds', type=int, default=5)
-    parser.add_argument('--K', type=int, default=None, help='Use synthetic with K items')
+    parser.add_argument('--collusion', type=float, default=0.05, 
+                       help='Collusion rate (e.g., 0.05 for 5%%)')
+    parser.add_argument('--T', type=int, default=10000,
+                       help='Number of rounds')
+    parser.add_argument('--n_seeds', type=int, default=5,
+                       help='Number of random seeds')
+    parser.add_argument('--K', type=int, default=None, 
+                       help='Number of items (synthetic) or top-K filter (MovieLens)')
+    parser.add_argument('--real-data', action='store_true',
+                       help='Use MovieLens data instead of synthetic')
     args = parser.parse_args()
     
     run_coordinated_experiment(
         collusion_rate=args.collusion,
         n_seeds=args.n_seeds,
         T=args.T,
-        K=args.K
+        K=args.K,
+        use_real_data=args.real_data
     )
