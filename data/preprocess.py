@@ -4,6 +4,66 @@ import os
 import numpy as np
 import pandas as pd
 
+def load_movielens(path="data/movielens-1m/ratings.dat", min_interactions=5):
+    """
+    Load full MovieLens 1M dataset (all items, no filtering by popularity).
+    
+    Args:
+        path: Path to ratings.dat file
+        min_interactions: Minimum interactions per user to keep
+    
+    Returns:
+        data: dict with keys 'users', 'items', 'ratings', 'n_users', 'n_items', 'df'
+    """
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"ratings file not found at {path}. Run data/download_datasets.sh")
+    
+    print(f"Loading MovieLens 1M (full dataset)...")
+    
+    # Read full dataset
+    df = pd.read_csv(path, sep="::", engine="python", names=["user", "item", "rating", "ts"])
+    print(f"  Original: {len(df)} ratings, {df['user'].nunique()} users, {df['item'].nunique()} items")
+    
+    # Filter users who have too few interactions
+    user_counts = df['user'].value_counts()
+    valid_users = set(user_counts[user_counts >= min_interactions].index)
+    df = df[df['user'].isin(valid_users)]
+    print(f"  After user filter (>={min_interactions} interactions): {len(df)} ratings, {df['user'].nunique()} users, {df['item'].nunique()} items")
+    
+    # Re-index users and items to consecutive integers starting from 0
+    unique_users = sorted(df['user'].unique())
+    unique_items = sorted(df['item'].unique())
+    user_map = {old: new for new, old in enumerate(unique_users)}
+    item_map = {old: new for new, old in enumerate(unique_items)}
+    
+    df = df.copy()
+    df['user'] = df['user'].map(user_map)
+    df['item'] = df['item'].map(item_map)
+    df['rating'] = df['rating'].astype(float) / 5.0  # Normalize [1,5] -> [0,1]
+    
+    users = df['user'].to_numpy(dtype=np.int32)
+    items = df['item'].to_numpy(dtype=np.int32)
+    ratings = df['rating'].to_numpy(dtype=np.float32)
+    
+    n_users = len(unique_users)
+    n_items = len(unique_items)
+    
+    print(f"  Final: {len(df)} ratings, {n_users} users, {n_items} items")
+    print(f"  Sparsity: {len(df)/(n_users*n_items)*100:.2f}%")
+    
+    data = {
+        'users': users,
+        'items': items,
+        'ratings': ratings,
+        'n_users': n_users,
+        'n_items': n_items,
+        'df': df,
+        'user_map': user_map,
+        'item_map': item_map
+    }
+    
+    return data
+
 def load_movielens_topK(K=200, path="data/movielens-1m/ratings.dat", min_interactions=5):
     """
     Load MovieLens 1M but keep only top-K most popular items.
