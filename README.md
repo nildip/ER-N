@@ -26,7 +26,7 @@ pip install -r requirements.txt
 ### 2. Run Quick Test (Synthetic Data)
 ```bash
 # Fast test: 1000 users, 200 items, 1000 rounds, 2 seeds
-python run_experiments.py --experiment main --T 1000 --n_seeds 2
+python experiments/run_experiments.py --experiment main --T 1000 --n_seeds 2
 ```
 
 **Expected output:**
@@ -65,7 +65,7 @@ This downloads and extracts MovieLens-1M (~6MB) to `data/movielens-1m/`.
 #### **Experiment 1: Main Results (Table 1 in paper)**
 Tests ER-N vs BSM at different collusion rates.
 ```bash
-python run_experiments.py --experiment main --real-data --K 200 --T 10000 --n_seeds 5
+python experiments/run_experiments.py --experiment main --real-data --K 200 --T 10000 --n_seeds 5
 ```
 
 **What it does:**
@@ -87,7 +87,7 @@ python run_experiments.py --experiment main --real-data --K 200 --T 10000 --n_se
 #### **Experiment 2: Ablation Study - σ (Figure 2 in paper)**
 Tests how robustness noise parameter affects manipulation resistance.
 ```bash
-python run_experiments.py --experiment ablation-sigma --real-data --K 200 --T 10000 --n_seeds 5
+python experiments/run_experiments.py --experiment ablation-sigma --real-data --K 200 --T 10000 --n_seeds 5
 ```
 
 **What it does:**
@@ -107,7 +107,7 @@ python run_experiments.py --experiment ablation-sigma --real-data --K 200 --T 10
 #### **Experiment 3: Ablation Study - β (Figure 3 in paper)**
 Tests exploration parameter sensitivity.
 ```bash
-python run_experiments.py --experiment ablation-beta --real-data --K 200 --T 10000 --n_seeds 5
+python experiments/run_experiments.py --experiment ablation-beta --real-data --K 200 --T 10000 --n_seeds 5
 ```
 
 **What it does:**
@@ -125,7 +125,7 @@ python run_experiments.py --experiment ablation-beta --real-data --K 200 --T 100
 #### **Experiment 4: Attack Strength Analysis (Figure 4 in paper)**
 Tests robustness against varying attack coordination.
 ```bash
-python run_experiments.py --experiment ablation-alpha --real-data --K 200 --T 10000 --n_seeds 5
+python experiments/run_experiments.py --experiment ablation-alpha --real-data --K 200 --T 10000 --n_seeds 5
 ```
 
 **What it does:**
@@ -140,10 +140,87 @@ python run_experiments.py --experiment ablation-alpha --real-data --K 200 --T 10
 ### Step 3: Run ALL Experiments
 ```bash
 # WARNING: Takes ~2 hours
-python run_experiments.py --experiment all --real-data --K 200 --T 10000 --n_seeds 5
+python experiments/run_experiments.py --experiment all --real-data --K 200 --T 10000 --n_seeds 5
 ```
 
 Runs all main + ablation experiments sequentially.
+
+---
+
+### Step 4: Generate LaTeX Tables
+
+After running experiments, generate tables for the paper:
+```bash
+python analysis/generate_tables.py
+```
+
+**Output:**
+```
+==================================================================
+GENERATING LATEX TABLES
+==================================================================
+
+Generating Table 1: Main Results...
+✓ Saved to: results/table1_main_results.tex
+
+Generating Table 2: Sigma Ablation...
+✓ Saved to: results/table2_ablation_sigma.tex
+
+Generating Table 3: Beta Ablation...
+✓ Saved to: results/table3_ablation_beta.tex
+```
+
+**Generated tables:**
+- `results/table1_main_results.tex` - Main results (Table 1 in paper)
+- `results/table2_ablation_sigma.tex` - Sigma ablation (Table 2 in paper)
+- `results/table3_ablation_beta.tex` - Beta ablation (Table 3 in paper)
+
+Copy these `.tex` files directly into your LaTeX paper source.
+
+**Requirements:**
+- Must run experiments first (tables need the JSON result files)
+
+---
+
+### Step 5: Statistical Significance Tests
+
+Verify that ER-N's improvements are statistically significant:
+```bash
+python analysis/statistical_tests.py
+```
+
+**Output:**
+```
+==================================================================
+STATISTICAL TESTS: Main Results
+==================================================================
+
+Collusion Rate: 1%
+  ER-N boost: 1.12 ± 0.23
+  BSM boost:  5.23 ± 0.45
+  Mean difference: -4.11
+  t-statistic: -15.342
+  p-value: 0.0001
+  Significant (p<0.05): ✓ YES
+
+Collusion Rate: 5%
+  ER-N boost: 3.34 ± 0.67
+  BSM boost:  12.45 ± 1.02
+  Mean difference: -9.11
+  t-statistic: -12.567
+  p-value: 0.0002
+  Significant (p<0.05): ✓ YES
+...
+```
+
+**Tests performed:**
+- **Main results**: ER-N vs BSM at each collusion rate (paired t-test)
+- **Sigma ablation**: σ=0.0 vs σ=0.3 (validates noise helps)
+- **Beta ablation**: β=1.0 vs β=10.0 (validates exploration helps)
+
+**Interpretation:**
+- p < 0.05 means statistically significant
+- Negative mean difference = ER-N has lower manipulation (better)
 
 ---
 
@@ -152,16 +229,16 @@ Runs all main + ablation experiments sequentially.
 ### Custom Parameters
 ```bash
 # Different collusion rate
-python run_experiments.py --experiment main --collusion 0.15 --T 10000 --n_seeds 5
+python experiments/run_experiments.py --experiment main --collusion 0.15 --T 10000 --n_seeds 5
 
 # Different σ value
-python run_experiments.py --experiment main --sigma 0.4 --T 10000 --n_seeds 5
+python experiments/run_experiments.py --experiment main --sigma 0.4 --T 10000 --n_seeds 5
 
 # Full MovieLens dataset (no top-K filter)
-python run_experiments.py --experiment main --real-data --T 10000 --n_seeds 5
+python experiments/run_experiments.py --experiment main --real-data --T 10000 --n_seeds 5
 
 # Synthetic data (fast testing)
-python run_experiments.py --experiment main --T 5000 --n_seeds 3
+python experiments/run_experiments.py --experiment main --T 5000 --n_seeds 3
 ```
 
 ### Parameter Reference
@@ -190,12 +267,12 @@ ER-N/
 ├── src/
 │   ├── ern.py                    # ER-N algorithm implementation
 │   ├── baselines.py              # Baseline methods (BSM, RobustMF)
-│   ├── strategic_users.py        # User utility generation
 │   └── coordinated_manipulation.py  # Attack simulation
 ├── experiments/
 │   └── run_experiments.py        # Main experiment runner
 ├── analysis/
-│   └── generate_figures.py       # Plot generation (optional)
+│   ├── generate_tables.py        # LaTeX table generation
+│   └── statistical_tests.py      # Significance testing
 ├── tests/
 │   └── test_*.py                 # Unit tests
 ├── results/                      # Output JSONs (created automatically)
@@ -276,14 +353,21 @@ bash data/download_datasets.sh
 
 **Solution:** Use smaller dataset or fewer rounds:
 ```bash
-python run_experiments.py --experiment main --K 100 --T 5000 --n_seeds 3
+python experiments/run_experiments.py --experiment main --K 100 --T 5000 --n_seeds 3
 ```
 
 ### Out of memory
 
 **Solution:** Reduce dataset size:
 ```bash
-python run_experiments.py --experiment main --K 50 --T 5000
+python experiments/run_experiments.py --experiment main --K 50 --T 5000
+```
+
+### Missing scipy for statistical tests
+
+**Solution:** Make sure scipy is installed:
+```bash
+pip install scipy
 ```
 
 ---
@@ -304,7 +388,7 @@ If you use this code, please cite:
 
 ## 📧 Contact
 
-For questions or issues, please open a GitHub issue.
+For questions or issues, please open a GitHub issue or contact [your email].
 
 ---
 
@@ -325,11 +409,17 @@ pip install -r requirements.txt
 bash data/download_datasets.sh
 
 # Quick test
-python run_experiments.py --experiment main --T 1000 --n_seeds 2
+python experiments/run_experiments.py --experiment main --T 1000 --n_seeds 2
 
 # Paper results
-python run_experiments.py --experiment all --real-data --K 200 --T 10000 --n_seeds 5
+python experiments/run_experiments.py --experiment all --real-data --K 200 --T 10000 --n_seeds 5
+
+# Generate tables
+python analysis/generate_tables.py
+
+# Statistical tests
+python analysis/statistical_tests.py
 
 # Single ablation
-python run_experiments.py --experiment ablation-sigma --real-data --K 200 --T 10000 --n_seeds 5
+python experiments/run_experiments.py --experiment ablation-sigma --real-data --K 200 --T 10000 --n_seeds 5
 ```
