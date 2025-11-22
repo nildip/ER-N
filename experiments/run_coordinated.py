@@ -13,6 +13,41 @@ from src.strategic_users import generate_user_utilities
 from src.coordinated_manipulation import CoordinatedAttack
 
 
+def ratings_to_utilities(data):
+    """
+    Convert MovieLens ratings data to utility matrix.
+    
+    Args:
+        data: dict from load_movielens with 'users', 'items', 'ratings', 'n_users', 'n_items'
+    
+    Returns:
+        utilities: (n_users, n_items) array with normalized ratings
+    """
+    n_users = data['n_users']
+    n_items = data['n_items']
+    
+    # Initialize with small random values (for items never rated by a user)
+    # These represent "neutral" or "unknown" utility
+    utilities = np.random.uniform(0.1, 0.3, size=(n_users, n_items))
+    
+    # Fill in actual ratings (already normalized to [0,1] by preprocess.py)
+    users = data['users']
+    items = data['items']
+    ratings = data['ratings']
+    
+    print(f"  Converting {len(ratings)} ratings to utility matrix...")
+    for u, i, r in zip(users, items, ratings):
+        utilities[u, i] = r
+    
+    # Calculate sparsity for diagnostics
+    n_rated = len(ratings)
+    n_total = n_users * n_items
+    sparsity = (n_rated / n_total) * 100
+    print(f"  Utility matrix: {n_users}×{n_items}, {sparsity:.2f}% filled with real ratings")
+    
+    return utilities
+
+
 def run_coordinated_single(learner, attack, utilities, T, seed, strategy='coordinated'):
     """
     Run single experiment with coordinated manipulation.
@@ -40,12 +75,7 @@ def run_coordinated_single(learner, attack, utilities, T, seed, strategy='coordi
         
         # Get action from learner
         if hasattr(learner, 'get_policy'):
-            try:
-                # Try user-aware first
-                policy = learner.get_policy(u_idx)
-            except:
-                # Fall back to user-agnostic
-                policy = learner.get_policy()
+            policy = learner.get_policy()
             
             # Normalize policy
             policy = np.asarray(policy, dtype=float)
@@ -68,7 +98,7 @@ def run_coordinated_single(learner, attack, utilities, T, seed, strategy='coordi
         if action == attack.target_item:
             results['target_recs'] += 1
         
-        # Get true reward
+        # Get true reward from utility matrix
         true_reward = float(utilities[u_idx, action])
         results['true_rewards'].append(true_reward)
         
@@ -76,10 +106,7 @@ def run_coordinated_single(learner, attack, utilities, T, seed, strategy='coordi
         feedback = attack.get_feedback(u_idx, action, true_reward, strategy=strategy)
         
         # Update learner
-        if isinstance(learner, RobustMF):
-            learner.update(u_idx, action, feedback)
-        else:
-            learner.update(action, feedback)
+        learner.update(action, feedback)
     
     return results
 
@@ -93,7 +120,7 @@ def run_coordinated_experiment(collusion_rate=0.05, n_seeds=5, T=10000, K=None, 
         n_seeds: Number of random seeds
         T: Number of rounds
         K: Number of items (for synthetic) or top-K filter (for MovieLens)
-        use_real_data: If True, load MovieLens; if False, use synthetic
+        use_real_data: If True, load MovieLens and use real ratings; if False, use synthetic
     """
     
     # Load dataset
@@ -105,33 +132,35 @@ def run_coordinated_experiment(collusion_rate=0.05, n_seeds=5, T=10000, K=None, 
                 data = load_movielens()
                 n_users = data['n_users']
                 n_items = data['n_items']
-                print(f"Loaded MovieLens (full): {n_users} users, {n_items} items")
+                utilities = ratings_to_utilities(data)
+                print(f"✓ Loaded MovieLens (full): {n_users} users, {n_items} items with real ratings\n")
             else:
                 # Load MovieLens top-K
                 from data.preprocess import load_movielens_topK
                 data = load_movielens_topK(K=K)
                 n_users = data['n_users']
                 n_items = data['n_items']
-                print(f"Loaded MovieLens (top-{K}): {n_users} users, {n_items} items")
+                utilities = ratings_to_utilities(data)
+                print(f"✓ Loaded MovieLens (top-{K}): {n_users} users, {n_items} items with real ratings\n")
         except Exception as e:
             print(f"⚠️  Failed to load MovieLens: {e}")
             print(f"   Falling back to synthetic data")
             n_users = 1000
             n_items = K if K is not None else 200
-            print(f"Using synthetic: {n_users} users, {n_items} items")
+            utilities = generate_user_utilities(n_users, n_items, seed=42)
+            print(f"Using synthetic: {n_users} users, {n_items} items\n")
     else:
         # Synthetic data (default)
         n_users = 1000
         n_items = K if K is not None else 200
-        print(f"Using synthetic: {n_users} users, {n_items} items")
-    
-    # Generate utilities
-    utilities = generate_user_utilities(n_users, n_items, seed=42)
+        utilities = generate_user_utilities(n_users, n_items, seed=42)
+        print(f"Using synthetic: {n_users} users, {n_items} items\n")
     
     # Choose target: pick item at 25th percentile popularity
+    # For real data, this could be an unpopular item that colluders want to boost
     target_item = n_items // 4
     
-    print(f"\nExperiment Configuration:")
+    print(f"Experiment Configuration:")
     print(f"  Collusion rate: {collusion_rate*100:.0f}%")
     print(f"  Colluding users: {int(n_users * collusion_rate)}/{n_users}")
     print(f"  Target item: {target_item}")
@@ -147,7 +176,7 @@ def run_coordinated_experiment(collusion_rate=0.05, n_seeds=5, T=10000, K=None, 
         seed=42
     )
     
-    # Methods (REMOVED RobustMF)
+    # Methods
     methods = {
         'ern': lambda: ERNLearner(n_items=n_items, beta=10.0, sigma=0.3, eta0=0.2, seed=42),
         'bsm': lambda: BaselineSoftmaxModel(n_items=n_items, beta=10.0, eta0=0.2, seed=42),
@@ -236,7 +265,7 @@ if __name__ == '__main__':
     parser.add_argument('--K', type=int, default=None, 
                        help='Number of items (synthetic) or top-K filter (MovieLens)')
     parser.add_argument('--real-data', action='store_true',
-                       help='Use MovieLens data instead of synthetic')
+                       help='Use MovieLens data with real ratings instead of synthetic')
     args = parser.parse_args()
     
     run_coordinated_experiment(
