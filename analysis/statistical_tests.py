@@ -11,7 +11,14 @@ from glob import glob
 
 def paired_ttest(a, b):
     """Paired t-test comparing two matched samples."""
+    a = np.asarray(a, dtype=np.float64)
+    b = np.asarray(b, dtype=np.float64)
+    
+    if len(a) != len(b):
+        raise ValueError("Samples must have same length")
+    
     t_stat, p_value = stats.ttest_rel(a, b)
+    
     return {
         't_statistic': float(t_stat),
         'p_value': float(p_value),
