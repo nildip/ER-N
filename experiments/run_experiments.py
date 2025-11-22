@@ -10,8 +10,23 @@ import random
 
 from src.ern import ERNLearner
 from src.baselines import BaselineSoftmaxModel
-from src.strategic_users import generate_user_utilities
 from src.coordinated_manipulation import CoordinatedAttack
+
+
+def generate_user_utilities(n_users, n_items, seed=42):
+    """
+    Generate synthetic user utilities using Beta distribution.
+    
+    Args:
+        n_users: Number of users
+        n_items: Number of items
+        seed: Random seed for reproducibility
+    
+    Returns:
+        utilities: (n_users, n_items) array with values in [0, 1]
+    """
+    rng = np.random.RandomState(seed)
+    return rng.beta(2.0, 2.0, size=(n_users, n_items)).astype(np.float64)
 
 
 def ratings_to_utilities(data):
