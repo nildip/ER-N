@@ -271,7 +271,7 @@ def main():
                 n_seeds=args.n_seeds,
                 T=args.T,
                 K=args.K,
-                use_real_data=args.real_data,
+                use_real_data=args.real_data,  # FIX: Now passing this
                 beta=args.beta,
                 sigma=args.sigma,
                 eta0=args.eta0,
@@ -291,7 +291,7 @@ def main():
                 n_seeds=args.n_seeds,
                 T=args.T,
                 K=args.K,
-                use_real_data=args.real_data,
+                use_real_data=args.real_data,  # FIX
                 beta=args.beta,
                 sigma=sigma,
                 eta0=args.eta0,
@@ -311,7 +311,7 @@ def main():
                 n_seeds=args.n_seeds,
                 T=args.T,
                 K=args.K,
-                use_real_data=args.real_data,
+                use_real_data=args.real_data,  # FIX
                 beta=beta,
                 sigma=args.sigma,
                 eta0=args.eta0,
@@ -331,7 +331,7 @@ def main():
                 n_seeds=args.n_seeds,
                 T=args.T,
                 K=args.K,
-                use_real_data=args.real_data,
+                use_real_data=args.real_data,  # FIX
                 beta=args.beta,
                 sigma=args.sigma,
                 eta0=args.eta0,
@@ -351,7 +351,7 @@ def main():
                 n_seeds=args.n_seeds,
                 T=args.T,
                 K=args.K,
-                use_real_data=args.real_data,
+                use_real_data=args.real_data,  # FIX
                 beta=args.beta,
                 sigma=args.sigma,
                 eta0=args.eta0,
@@ -365,20 +365,50 @@ def main():
         print("RUNNING ALL EXPERIMENTS")
         print("="*70 + "\n")
         
-        # Main
+        # Main - FIX: Now passing all args
         for rate in [0.01, 0.05, 0.10, 0.20]:
-            run_experiment(collusion_rate=rate, n_seeds=args.n_seeds, T=args.T,
-                         exp_name=f'main_collusion{int(rate*100)}pct')
+            run_experiment(
+                collusion_rate=rate, 
+                n_seeds=args.n_seeds, 
+                T=args.T,
+                K=args.K,
+                use_real_data=args.real_data,  # FIX: Added
+                beta=args.beta,
+                sigma=args.sigma,
+                eta0=args.eta0,
+                alpha=args.alpha,
+                exp_name=f'main_collusion{int(rate*100)}pct'
+            )
         
-        # Sigma ablation
+        # Sigma ablation - FIX: Now passing all args
         for sigma in [0.0, 0.1, 0.2, 0.3, 0.5]:
-            run_experiment(collusion_rate=0.05, n_seeds=args.n_seeds, T=args.T,
-                         sigma=sigma, exp_name=f'ablation_sigma{sigma:.1f}')
+            run_experiment(
+                collusion_rate=0.05, 
+                n_seeds=args.n_seeds, 
+                T=args.T,
+                K=args.K,
+                use_real_data=args.real_data,  # FIX: Added
+                beta=args.beta,
+                sigma=sigma, 
+                eta0=args.eta0,
+                alpha=args.alpha,
+                exp_name=f'ablation_sigma{sigma:.1f}'
+            )
         
-        # Beta ablation
+        # Beta ablation - FIX: Now passing all args
         for beta in [1.0, 5.0, 10.0, 20.0]:
-            run_experiment(collusion_rate=0.05, n_seeds=args.n_seeds, T=args.T,
-                         beta=beta, exp_name=f'ablation_beta{beta:.1f}')
+            run_experiment(
+                collusion_rate=0.05, 
+                n_seeds=args.n_seeds, 
+                T=args.T,
+                K=args.K,
+                use_real_data=args.real_data,  # FIX: Added
+                beta=beta, 
+                sigma=args.sigma,
+                eta0=args.eta0,
+                alpha=args.alpha,
+                exp_name=f'ablation_beta{beta:.1f}'
+            )
         
         print("="*70)
         print("ALL EXPERIMENTS COMPLETE")
