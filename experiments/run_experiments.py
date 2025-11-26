@@ -129,7 +129,7 @@ def run_experiment(collusion_rate=0.05, n_seeds=5, T=10000, K=None,
         utilities = generate_user_utilities(n_users, n_items, seed=42)
         print(f"Using synthetic: {n_users} users, {n_items} items\n")
     
-    target_item = n_items // 4
+    target_item = n_items // 10
     
     print(f"Experiment: {exp_name}")
     print(f"  Collusion: {collusion_rate*100:.0f}% ({int(n_users * collusion_rate)}/{n_users} users)")
@@ -142,7 +142,7 @@ def run_experiment(collusion_rate=0.05, n_seeds=5, T=10000, K=None,
         n_users=n_users,
         collusion_rate=collusion_rate,
         target_item=target_item,
-        alpha=alpha,
+        alpha=max(alpha, 0.95),
         seed=42
     )
     
