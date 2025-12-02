@@ -129,7 +129,13 @@ def run_experiment(collusion_rate=0.05, n_seeds=5, T=10000, K=None,
         utilities = generate_user_utilities(n_users, n_items, seed=42)
         print(f"Using synthetic: {n_users} users, {n_items} items\n")
     
-    target_item = n_items // 10
+    if not use_real_data:
+        utilities = generate_user_utilities(n_users, n_items, seed=42)
+        item_avg_quality = utilities.mean(axis=0)
+        low_quality_items = np.argsort(item_avg_quality)[:n_items//4]  # Bottom 25%
+        target_item = int(np.random.RandomState(42).choice(low_quality_items))
+    else:
+        target_item = n_items // 10
     
     print(f"Experiment: {exp_name}")
     print(f"  Collusion: {collusion_rate*100:.0f}% ({int(n_users * collusion_rate)}/{n_users} users)")
@@ -142,7 +148,7 @@ def run_experiment(collusion_rate=0.05, n_seeds=5, T=10000, K=None,
         n_users=n_users,
         collusion_rate=collusion_rate,
         target_item=target_item,
-        alpha=max(alpha, 0.95),
+        alpha=alpha,
         seed=42
     )
     
@@ -243,19 +249,19 @@ def main():
                        help='Which experiment to run')
     
     # Basic params
-    parser.add_argument('--T', type=int, default=10000, help='Number of rounds')
-    parser.add_argument('--n_seeds', type=int, default=5, help='Number of seeds')
+    parser.add_argument('--T', type=int, default=50000, help='Number of rounds')
+    parser.add_argument('--n_seeds', type=int, default=20, help='Number of seeds')
     parser.add_argument('--real-data', action='store_true', help='Use MovieLens data')
     parser.add_argument('--K', type=int, default=None, help='Top-K items filter')
     
     # Algorithm params
     parser.add_argument('--beta', type=float, default=10.0, help='Exploration temperature')
-    parser.add_argument('--sigma', type=float, default=0.3, help='ER-N noise parameter')
+    parser.add_argument('--sigma', type=float, default=0.5, help='ER-N noise parameter')
     parser.add_argument('--eta0', type=float, default=0.2, help='Learning rate')
     
     # Attack params
     parser.add_argument('--collusion', type=float, default=0.05, help='Collusion rate')
-    parser.add_argument('--alpha', type=float, default=0.8, help='Attack strength')
+    parser.add_argument('--alpha', type=float, default=1.0, help='Attack strength')
     
     args = parser.parse_args()
     
