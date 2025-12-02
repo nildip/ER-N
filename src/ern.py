@@ -11,7 +11,7 @@ def softmax(logits):
     return exps / sum_exps
 
 class ERNLearner:
-    def __init__(self, n_items, beta=0.1, sigma=0.01, eta0=0.001, seed=None):
+    def __init__(self, n_items, beta=10, sigma=0.5, eta0=0.2, seed=None):
         self.n_items = int(n_items)
         self.beta = float(beta)
         self.sigma = float(sigma)
